@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import os
 from sqlalchemy import func
 from dotenv import load_dotenv
+
 try:
     from bson.objectid import ObjectId
     from pymongo import MongoClient
@@ -13,6 +14,13 @@ except Exception:
     # pymongo may not be installed yet; we'll guard usage later
     ObjectId = None
     MongoClient = None
+
+try:
+    from tinydb import TinyDB, Query
+except Exception:
+    # TinyDB may not be installed yet; we'll guard usage later
+    TinyDB = None
+    Query = None
 
 # Load environment variables
 load_dotenv()
@@ -70,6 +78,9 @@ else:
     # Default to SQLAlchemy using DATABASE_URL if provided, otherwise a local
     # SQLite file inside the Flask instance folder.
     if database_url and not is_mongo:
+        # Fix PostgreSQL URLs if they use postgres:// (deprecated)
+        if database_url.startswith('postgres://'):
+            database_url = database_url.replace('postgres://', 'postgresql://', 1)
         app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     else:
         try:
@@ -671,6 +682,5 @@ def get_stats():
 
 if __name__ == "__main__":
     debug_mode = os.getenv('FLASK_ENV', 'production') == 'development'
-    port = int(os.getenv('PORT', 4048))
+    port = int(os.getenv('PORT', 5000))
     app.run(debug=debug_mode, port=port, host='0.0.0.0')
-    
